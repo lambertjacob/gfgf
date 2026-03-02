@@ -1,4 +1,11 @@
-const map = L.map('map').setView([44.0, -76.5], 8);
+const DEFAULT_CITY = {
+    name: "Kingston",
+    lat: 44.231298,
+    lng: -76.481283,
+    zoom: 8,
+};
+
+const map = L.map('map').setView([DEFAULT_CITY.lat, DEFAULT_CITY.lng], DEFAULT_CITY.zoom);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {}).addTo(map);
 
@@ -10,7 +17,7 @@ const MOCK_DATA = [
         city: "Kingston",
         lat: 44.231298,
         lng: -76.481283,
-        notes: "Sushi",
+        notes: "Other",
         visited_on: "2025-01-15",
     }
 ];
