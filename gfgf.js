@@ -41,7 +41,7 @@ function plotRestaurants(places) {
 }
 
 
-fetch('/api/restaurants')
+fetch('/restaurants_data/restaurants')
     .then(r => r.json())
     .then(data => plotRestaurants(data))
     .catch(() => {
