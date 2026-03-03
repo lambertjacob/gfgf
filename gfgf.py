@@ -1,25 +1,65 @@
-import anthropic
+import anthropic, time, json
 
 client = anthropic.Anthropic()
 
-def call_claude(prompt, system="only serve facts, no opinions, and make NO mistakes on the gluten-free status."):
-    response = client.messages.create(
-        model="claude-opus-4-5",
-        max_tokens=1024,
-        system=system,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response.content[0].text
+def call_claude(messages, system="only serve facts, no opinions, and make NO mistakes on the gluten-free status."):
+    try:
+        response = client.messages.create(
+            model="claude-opus-4-5",
+            max_tokens=1024,
+            system=system,
+            messages=messages
+        )
+        return response.content[0].text
+    except anthropic.APIConnectionError:
+        print("Connection failed, retrying...")
+    except anthropic.RateLimitError:
+        print("Rate limited — wait and retry")
+    except anthropic.APIStatusError as e:
+        print(f"API error: {e.status_code}")
+
+def run_step(name, prompt, history):
+    print(f"Running step: {name}")
+    start = time.time()
+    history.append({"role": "user", "content": prompt})
+    response = call_claude(history)
+    history.append({"role": "assistant", "content": response})
+    end = time.time()
+    print(f"Response for {name}: {response}")
+    print(f"Step '{name}' completed in {end - start:.2f} seconds.")
+    return response
 
 def run_workflow(ingredients):
-    check_ingredients = call_claude(f"Ensure that all of the following are gluten-free: {ingredients}. If any of them are not, return a list of the non-gluten-free ingredientsm as this will be used in the next step.")
-    print("Check Ingredients:", check_ingredients)
-    generate_recipe = call_claude(f"Generate a recipe using the following gluten-free ingredients: {ingredients} without the following {check_ingredients}. Return the recipe in a list format with the name of the dish, the ingredients, and the instructions.")
-    print("Generate Recipe:", generate_recipe)
-    nurtition_facts = call_claude(f"Generate the nutrition facts for the following recipe: {generate_recipe}. Return the nutrition facts in a list format with the calories, carbs, protein, and fat.")
-    generate_output = call_claude(f"Generate a final output that includes the recipe and the nutrition facts for the following recipe: {generate_recipe} with the following nutrition facts: {nurtition_facts}. Return the output in a list format with the name of the dish, the ingredients, the instructions, and the nutrition facts.")
+    
+    history = [] 
+    
+    check_ingredients = run_step("Check Ingredients", f"Ensure that all of the following are gluten-free: {ingredients}. If any of them are not, return a list of the non-gluten-free ingredients, as this will be used in the next step.", history)
+    generate_recipe = run_step("Generate Recipe", f"Generate a recipe using the following gluten-free ingredients: {ingredients} without the following {check_ingredients}. Return the recipe in a list format with the name of the dish, the ingredients, and the instructions.", history)
+    nutrition_facts = run_step("Nutrition Facts", f"Generate the nutrition facts for the following recipe you just created. Return the nutrition facts in a list format with the calories, carbs, protein, and fat.", history)
+   
+    final_output = run_step(
+        "Final Output",
+        """Return the complete recipe as valid JSON only. No extra text, no markdown, no backticks. Use this exact structure:
+        {
+            "dish_name": "X",
+            "ingredients": ["X", "X"],
+            "instructions": ["X", "X"],
+            "nutrition": {
+                "calories": "X",
+                "carbs": "X",
+                "protein": "X",
+                "fat": "X"
+            }
+        }""",
+        history
+    )
 
-    print(generate_output)
+    #then verify the final output is valid JSON, if not, fix it and return the corrected JSON
+    try:
+        parsed = json.loads(final_output)
+        print(json.dumps(parsed, indent=2))
+    except json.JSONDecodeError:
+        print("not a clean json")
 
-
-run_workflow("kale, chicken, rice, soy sauce, gluten-free pasta, oatmeal")
+if __name__ == "__main__":
+    run_workflow("kale, chicken, rice, soy sauce, gluten-free pasta, oatmeal")
