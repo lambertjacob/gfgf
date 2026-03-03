@@ -9,6 +9,19 @@ const map = L.map('map').setView([DEFAULT_CITY.lat, DEFAULT_CITY.lng], DEFAULT_C
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {}).addTo(map);
 
+const icon = L.divIcon({
+    className: '',
+    html: `<div style="
+        width: 18px; height: 18px;
+        background: darkgreen;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        "></div>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+    popupAnchor: [0, -12]
+});
 
 const MOCK_DATA = [
     {
@@ -19,18 +32,36 @@ const MOCK_DATA = [
         lng: -76.481283,
         notes: "Other",
         visited_on: "2025-01-15",
+        rating: "4.7"
     }
 ];
 
+function renderStars(rating) {
+    const numericRating = Number.parseFloat(rating);
+    const clampedRating = Number.isFinite(numericRating)
+        ? Math.max(0, Math.min(5, numericRating))
+        : 0;
+    const fillWidth = (clampedRating / 5) * 100;
+
+    return `
+        <span style="position: relative; display: inline-block; line-height: 1; vertical-align: middle;">
+            <span style="opacity: 0.25;">★★★★★</span>
+            <span style="position: absolute; left: 0; top: 0; white-space: nowrap; overflow: hidden; width: ${fillWidth}%;">★★★★★</span>
+        </span>
+    `;
+}
+
 function plotRestaurants(places) {
     places.forEach(p => {
-        L.marker([p.lat, p.lng])
+        L.marker([p.lat, p.lng], { icon: icon })
             .addTo(map)
             .bindPopup(`
                 <div class="popup">
                     <h3>${p.name}</h3>
-                    ${p.address}, ${p.city}<br/>
-                    ${p.notes ? `${p.notes}` : ''}
+                    <h4>${p.address}, ${p.city}</h4>
+                    <div class="star-rating">${renderStars(p.rating)} ${p.rating ?? 0}</div>
+                    <p>${p.notes ? p.notes : ''}</p>
+                    <small>Last visited: ${p.visited_on}</small>
                 </div>
             `);
     });
