@@ -1,0 +1,51 @@
+html<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GF GF Recipe</title>
+</head>
+<body>
+    <h1>GF GF Recipe</h1>
+    <p>One recipe per day.</p>
+
+    <input type="text" id="ingredients-input" placeholder="e.g. kale, chicken, rice" />
+    <button onclick="generateRecipe()">Generate</button>
+
+    <p id="loading" style="display:none">Generating... this takes ~20 seconds</p>
+    <div id="output"></div>
+
+    <script>
+    async function generateRecipe() {
+        const ingredients = document.getElementById("ingredients-input").value.trim();
+        if (!ingredients) return alert("Enter some ingredients");
+
+        document.getElementById("loading").style.display = "block";
+        document.getElementById("output").innerHTML = "";
+
+        const res = await fetch("http://jacoblambert.ca/recipe-api/recipe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ingredients })
+        });
+
+        const data = await res.json();
+        document.getElementById("loading").style.display = "none";
+
+        if (res.status === 429 || data.error) {
+            document.getElementById("output").innerHTML = `<p>${data.error}</p>`;
+            return;
+        }
+
+        document.getElementById("output").innerHTML = `
+            <h2>${data.dish_name}</h2>
+            <h3>Ingredients</h3>
+            <ul>${data.ingredients.map(i => `<li>${i}</li>`).join("")}</ul>
+            <h3>Instructions</h3>
+            <ol>${data.instructions.map(i => `<li>${i}</li>`).join("")}</ol>
+            <h3>Nutrition</h3>
+            <p>Calories: ${data.nutrition.calories} | Carbs: ${data.nutrition.carbs} | Protein: ${data.nutrition.protein} | Fat: ${data.nutrition.fat}</p>
+        `;
+    }
+    </script>
+</body>
+</html>

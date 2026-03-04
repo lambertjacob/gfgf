@@ -1,13 +1,33 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import anthropic, time, json
+from datetime import date
+
+app = Flask(__name__)
+CORS(app)
+
+usage_log = {"date": "", "count": 0}
+DAILY_LIMIT = 1
+
+def is_rate_limited():
+    today = str(date.today())
+    if usage_log["date"] != today:
+        usage_log["date"] = today
+        usage_log["count"] = 0
+    if usage_log["count"] >= DAILY_LIMIT:
+        return True
+    usage_log["count"] += 1
+    return False
 
 client = anthropic.Anthropic()
+
 
 def call_claude(messages, system="only serve facts, no opinions, and make NO mistakes on the gluten-free status."):
     try:
         response = client.messages.create(
             model="claude-opus-4-5",
             max_tokens=1024,
-            system=system,
+            system=system  
             messages=messages
         )
         return response.content[0].text
@@ -29,7 +49,15 @@ def run_step(name, prompt, history):
     print(f"Step '{name}' completed in {end - start:.2f} seconds.")
     return response
 
-def run_workflow(ingredients):
+
+@app.route('/recipe', methods=['POST'])
+def run_workflow():
+    if is_rate_limited():
+        return jsonify({"error": "Only one recipe can be generated per day"}), 429
+
+    ingredients = request.json.get("ingredients")
+    if not ingredients:
+        return jsonify({"error": "No ingredients provided"}), 400
     
     history = [] 
     
@@ -62,4 +90,4 @@ def run_workflow(ingredients):
         print("not a clean json")
 
 if __name__ == "__main__":
-    run_workflow("kale, chicken, rice, soy sauce, gluten-free pasta, oatmeal")
+    app.run(debug=True, port=5001)
