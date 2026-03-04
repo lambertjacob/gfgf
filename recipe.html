@@ -1,4 +1,4 @@
-html<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -22,7 +22,7 @@ html<!DOCTYPE html>
         document.getElementById("loading").style.display = "block";
         document.getElementById("output").innerHTML = "";
 
-        const res = await fetch("http://jacoblambert.ca/recipe-api/recipe", {
+        const res = await fetch("https://jacoblambert.ca/recipe-api/recipe", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ingredients })

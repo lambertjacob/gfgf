@@ -7,7 +7,7 @@ app = Flask(__name__)
 CORS(app)
 
 usage_log = {"date": "", "count": 0}
-DAILY_LIMIT = 1
+DAILY_LIMIT = 5
 
 def is_rate_limited():
     today = str(date.today())
@@ -27,7 +27,7 @@ def call_claude(messages, system="only serve facts, no opinions, and make NO mis
         response = client.messages.create(
             model="claude-opus-4-5",
             max_tokens=1024,
-            system=system  
+            system=system,  
             messages=messages
         )
         return response.content[0].text
@@ -37,6 +37,9 @@ def call_claude(messages, system="only serve facts, no opinions, and make NO mis
         print("Rate limited — wait and retry")
     except anthropic.APIStatusError as e:
         print(f"API error: {e.status_code}")
+    except Exception as e:
+        print(f"Claude error: {type(e).__name__}: {e}")
+        return None
 
 def run_step(name, prompt, history):
     print(f"Running step: {name}")
@@ -50,7 +53,7 @@ def run_step(name, prompt, history):
     return response
 
 
-@app.route('/recipe', methods=['POST'])
+@app.route('/recipe-api/recipe', methods=['POST'])
 def run_workflow():
     if is_rate_limited():
         return jsonify({"error": "Only one recipe can be generated per day"}), 429
@@ -85,9 +88,9 @@ def run_workflow():
     #then verify the final output is valid JSON, if not, fix it and return the corrected JSON
     try:
         parsed = json.loads(final_output)
-        print(json.dumps(parsed, indent=2))
+        return jsonify(parsed)
     except json.JSONDecodeError:
-        print("not a clean json")
+        return jsonify({"error": "Failed to parse recipe"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=5001)
