@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>GF GF Recipe</title>
+    <link rel="stylesheet" href="recipe.css">
 </head>
 <body>
     <h1>GF GF Recipe</h1>
@@ -15,12 +16,30 @@
     <div id="output"></div>
 
     <script>
+    
+    const MOCK = true; 
+
+    const MOCK_DATA = {
+        dish_name: "Gluten Free Chicken Rice Bowl",
+        ingredients: ["chicken", "rice", "kale", "olive oil", "salt"],
+        instructions: ["Cook rice.", "Grill chicken.", "Sauté kale.", "Combine and serve."],
+        nutrition: { calories: "450", carbs: "38g", protein: "32g", fat: "12g" }
+    };
+    
     async function generateRecipe() {
         const ingredients = document.getElementById("ingredients-input").value.trim();
         if (!ingredients) return alert("Enter some ingredients");
 
         document.getElementById("loading").style.display = "block";
         document.getElementById("output").innerHTML = "";
+
+        // use mock data instead of real request
+        if (MOCK) {
+            await new Promise(r => setTimeout(r, 1000));  // fake delay
+            document.getElementById("loading").style.display = "none";
+            renderOutput(MOCK_DATA);
+            return;
+        }
 
         const res = await fetch("https://jacoblambert.ca/recipe-api/recipe", {
             method: "POST",
@@ -36,14 +55,19 @@
             return;
         }
 
+        renderOutput(data);
+
+    }
+    function renderOutput(data) {
+        const { dish_name, ingredients, instructions, nutrition } = data;
         document.getElementById("output").innerHTML = `
-            <h2>${data.dish_name}</h2>
-            <h3>Ingredients</h3>
-            <ul>${data.ingredients.map(i => `<li>${i}</li>`).join("")}</ul>
-            <h3>Instructions</h3>
-            <ol>${data.instructions.map(i => `<li>${i}</li>`).join("")}</ol>
-            <h3>Nutrition</h3>
-            <p>Calories: ${data.nutrition.calories} | Carbs: ${data.nutrition.carbs} | Protein: ${data.nutrition.protein} | Fat: ${data.nutrition.fat}</p>
+            <h2>${dish_name}</h2>
+            <h3>Ingredients:</h3>
+            <ul>${ingredients.map(i => `<li>${i}</li>`).join("")}</ul>
+            <h3>Instructions:</h3>
+            <ol>${instructions.map(i => `<li>${i}</li>`).join("")}</ol>
+            <h3>Nutrition:</h3>
+            <p>Calories: ${nutrition.calories}, Carbs: ${nutrition.carbs}, Protein: ${nutrition.protein}, Fat: ${nutrition.fat}</p>
         `;
     }
     </script>
